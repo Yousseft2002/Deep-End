@@ -4,13 +4,13 @@ Researched September 2026. Store rules change, so check the linked sources befor
 
 ## 0. Before anything (10 minutes)
 
-- [ ] Replace `[YOUR CONTACT EMAIL]` in `docs/privacy.html` and `docs/support.html`. Both stores show
+- [x] Replace `[YOUR CONTACT EMAIL]` in `docs/privacy.html` and `docs/support.html`. Both stores show
       a contact address publicly. A separate address such as `deepend.app@…` is worth considering.
-- [ ] Confirm the app ID `io.github.dosyoussef.deepend` in `capacitor.config.json` and `codemagic.yaml`.
-      It **can never change** after the first store upload. It assumes your GitHub username is `dosyoussef`.
+- [ ] Confirm the app ID `io.github.yousseft2002.deepend` in `capacitor.config.json` and `codemagic.yaml`.
+      It **can never change** after the first store upload. It matches the GitHub username `Yousseft2002`.
 - [ ] Web version live on GitHub Pages (see README). The stores need these public URLs:
-  - Privacy policy: `https://<you>.github.io/deep-end/privacy.html`
-  - Support: `https://<you>.github.io/deep-end/support.html`
+  - Privacy policy: `https://yousseft2002.github.io/deep-end/privacy.html`
+  - Support: `https://yousseft2002.github.io/deep-end/support.html`
 - [x] Fonts are built in (`docs/fonts/`, SIL Open Font License, with license files alongside). The app makes
       no network requests while you play.
 
@@ -69,7 +69,7 @@ If it's rejected anyway, the usual fix is one more native feature. The natural o
 1. Push this repo to GitHub, sign up at codemagic.io with GitHub, and add the `deep-end` repo. It finds `codemagic.yaml`.
 2. **iOS:** in App Store Connect → Users and Access → Integrations, create an **App Store Connect API key**
    (App Manager role). Add it in Codemagic → Team integrations, named `Deep End API key`. Enable automatic
-   code signing for bundle ID `io.github.dosyoussef.deepend`. Create the app record in App Store Connect first.
+   code signing for bundle ID `io.github.yousseft2002.deepend`. Create the app record in App Store Connect first.
 3. **Android:** in Codemagic → Code signing identities, **generate** an upload keystore with reference
    `deep_end_upload_key`, and **download a backup of it**: losing it means you can't update the app. Create a Google
    Cloud service account with Play Console access and put its JSON in an environment group `google_play` as

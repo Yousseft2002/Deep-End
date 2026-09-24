@@ -34,7 +34,7 @@ workflows:
       xcode: latest
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: io.github.dosyoussef.deepend
+        bundle_identifier: io.github.yousseft2002.deepend
     scripts:
       - *install
       - name: Portrait only, no encryption export questions
