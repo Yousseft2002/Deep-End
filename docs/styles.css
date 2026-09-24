@@ -1,3 +1,18 @@
+/* Fonts ship with the app (SIL Open Font License, see fonts/OFL-*.txt), so the store build
+   looks right on first launch with no signal and nothing is requested from Google. */
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:400 800;font-display:swap;
+  src:url(fonts/bricolage-latin.woff2) format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Bricolage Grotesque";font-style:normal;font-weight:400 800;font-display:swap;
+  src:url(fonts/bricolage-latin-ext.woff2) format("woff2");
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Young Serif";font-style:normal;font-weight:400;font-display:swap;
+  src:url(fonts/young-serif-latin.woff2) format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Young Serif";font-style:normal;font-weight:400;font-display:swap;
+  src:url(fonts/young-serif-latin-ext.woff2) format("woff2");
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
 :root{
   /* Always dark. The water darkens as you go deeper: teal surface → near-black navy */
   --d1:#123F48; --d2:#10334F; --d3:#0D2748; --d4:#0A1B3A; --d5:#050B1F;
@@ -148,16 +163,60 @@ svg{width:22px;height:22px;flex:none}
 .actions .ghost[aria-pressed="true"]{background:var(--ink);color:var(--water);border-color:var(--ink)}
 .next{width:100%;padding:17px;font-size:1.1rem;border-radius:18px;min-height:58px}
 
-/* ---------- pass the phone ---------- */
-.pass-screen{position:fixed;inset:0;z-index:20;background:var(--water);animation:fade .25s ease both}
-.pass-inner{
-  width:100%;height:100%;border:0;background:transparent;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;
+/* ---------- hand-off: the next question waits underwater ---------- */
+.surface{
+  --sea:color-mix(in srgb,var(--water) 62%,#000);
+  position:fixed;inset:0;z-index:20;overflow:hidden;
+  display:grid;grid-template-rows:1fr 1fr;
+  background:color-mix(in srgb,var(--water) 84%,var(--aqua));
+  animation:fade .3s ease both;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
 }
-.pass-ring{width:96px;height:96px;animation:bob 2.4s ease-in-out infinite}
-.pass-h{font-weight:800;font-size:clamp(2rem,9vw,2.8rem);letter-spacing:-.03em;line-height:1.05;max-width:14ch}
-.pass-sub{opacity:.7}
-@keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-8px) rotate(4deg)}}
+.surface-sky{
+  display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;
+  padding:calc(var(--safe-t) + 24px) 24px 104px;
+}
+.surface-k{margin:0 0 12px;font-size:.8rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--aqua)}
+.surface-h{margin:0;font-weight:800;font-size:clamp(2.3rem,11vw,3.4rem);letter-spacing:-.04em;line-height:.98;max-width:11ch;overflow-wrap:anywhere}
+.surface-sea{position:relative;background:var(--sea);transform:translateY(calc(var(--p,0) * -14px))}
+.surface .wave{position:absolute;left:0;bottom:calc(100% - 1px);width:200%;height:26px;animation:drift 7s linear infinite}
+.w-fill{fill:var(--sea)}
+.w-crest{fill:none;stroke:color-mix(in srgb,var(--aqua) 70%,transparent);stroke-width:2;vector-effect:non-scaling-stroke}
+@keyframes drift{to{transform:translateX(-50%)}}
+.bubble{
+  position:absolute;bottom:-12px;left:var(--x);width:var(--s);height:var(--s);border-radius:50%;
+  border:1.5px solid color-mix(in srgb,var(--aqua) 55%,transparent);opacity:0;
+  animation:bubble var(--t) ease-in var(--d) infinite;
+}
+@keyframes bubble{
+  0%{transform:translate(0,0);opacity:0} 15%{opacity:.8}
+  50%{transform:translate(6px,-22vh)} 100%{transform:translate(-4px,-46vh);opacity:0}
+}
+.hold{
+  position:absolute;left:50%;top:50%;width:132px;height:132px;margin:-66px 0 0 -66px;
+  border:0;padding:0;background:transparent;border-radius:50%;touch-action:none;
+  animation:bob 2.6s ease-in-out infinite;
+}
+.hold.holding{animation-play-state:paused}
+.hold .hold-meter{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.hm-track{fill:none;stroke:color-mix(in srgb,var(--ink) 16%,transparent);stroke-width:5}
+.hm-fill{fill:none;stroke:var(--buoy);stroke-width:5;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100}
+.hold-buoy{
+  position:absolute;inset:20px;border-radius:50%;
+  background:conic-gradient(#fff 0 25%,#FF5A4E 0 50%,#fff 0 75%,#FF5A4E 0);
+  -webkit-mask:radial-gradient(circle,transparent 0 31%,#000 32%);mask:radial-gradient(circle,transparent 0 31%,#000 32%);
+  box-shadow:0 6px 18px rgba(0,10,30,.45);
+  transform:translateY(calc(var(--p,0) * -10px)) scale(calc(1 + var(--p,0) * .1));
+}
+.surface-hint{
+  position:absolute;left:24px;right:24px;top:calc(50% + 86px);margin:0;text-align:center;
+  font-weight:600;opacity:.75;transition:opacity .2s;
+}
+.surface.holding .surface-hint{opacity:.35}
+.surface.out{animation:surface-out .5s cubic-bezier(.55,0,.8,.3) forwards;pointer-events:none}
+.surface.out .hold-buoy{transition:transform .5s ease-in,opacity .5s;transform:translateY(-60px) scale(1.25);opacity:0}
+@keyframes surface-out{to{transform:translateY(-100%)}}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-7px) rotate(4deg)}}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 
 /* ---------- sheets ---------- */

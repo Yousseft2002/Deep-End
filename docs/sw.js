@@ -4,12 +4,13 @@
 importScripts("version.js");
 
 const CACHE = "deepend-" + self.DEEPEND_VERSION;
-const FONTS = "deepend-fonts";
 const DEV = ["localhost", "127.0.0.1"].includes(location.hostname);
 const SHELL = [
   "./", "index.html", "styles.css", "app.js", "questions.js", "version.js",
   "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png",
-  "icons/apple-touch-icon.png", "privacy.html", "support.html"
+  "icons/apple-touch-icon.png", "privacy.html", "support.html",
+  "fonts/bricolage-latin.woff2", "fonts/bricolage-latin-ext.woff2",
+  "fonts/young-serif-latin.woff2", "fonts/young-serif-latin-ext.woff2"
 ];
 
 self.addEventListener("install", e => {
@@ -19,7 +20,7 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k.startsWith("deepend-") && k !== CACHE && k !== FONTS).map(k => caches.delete(k)));
+    await Promise.all(keys.filter(k => k.startsWith("deepend-") && k !== CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
@@ -33,15 +34,6 @@ self.addEventListener("fetch", e => {
   if(req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // Google Fonts: serve what we have, refresh in the background.
-  if(url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com"){
-    e.respondWith(caches.open(FONTS).then(async c => {
-      const hit = await c.match(req);
-      const net = fetch(req).then(r => { if(r.ok || r.type === "opaque") c.put(req, r.clone()); return r; }).catch(() => hit);
-      return hit || net;
-    }));
-    return;
-  }
   if(url.origin !== location.origin) return;
 
   // Everything of ours comes from this release's cache, so a release is all-or-nothing.

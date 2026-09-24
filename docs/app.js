@@ -122,7 +122,7 @@ function turnText(){
 function passTitle(){
   const [a, b] = names();
   const to = state.turn === 0 ? a : b;
-  return to ? "Pass the phone to " + to : "Pass the phone";
+  return to ? "Over to you, " + to : "Hand it across";
 }
 
 // ---------- question store: no repeats per relationship, kept on the device ----------
@@ -239,13 +239,65 @@ $("next").onclick = () => {
   haptic();
   state.turn = 1 - state.turn;
   newQuestion();
-  if(prefs.passScreen && state.current){
-    $("passTitle").textContent = passTitle();
-    $("passScreen").hidden = false;
-    $("passReveal").focus();
-  }
+  if(prefs.passScreen && state.current) dive();
 };
-$("passReveal").onclick = () => { $("passScreen").hidden = true; $("next").focus(); };
+
+// ---------- hand-off: hold the ring to bring the question up ----------
+const HOLD_MS = 750, SINK_MS = 300;
+const surf = $("passScreen"), holdBtn = $("passReveal");
+let holdP = 0, holding = false, holdRaf = 0, holdLast = 0, surfacing = false;
+
+function dive(){
+  $("passKicker").textContent = "Next up · " + LEVELS[state.level-1];
+  $("passTitle").textContent = passTitle();
+  surfacing = false; setHold(0);
+  surf.classList.remove("out", "holding");
+  surf.hidden = false;
+  holdBtn.focus();
+}
+function setHold(p){
+  holdP = p;
+  surf.style.setProperty("--p", p.toFixed(3));
+  $("holdFill").style.strokeDashoffset = String(100 - p * 100);
+}
+function holdFrame(now){
+  const dt = now - holdLast; holdLast = now;
+  const before = holdP;
+  const p = holding ? Math.min(1, holdP + dt / HOLD_MS) : Math.max(0, holdP - dt / SINK_MS);
+  setHold(p);
+  // two small ticks on the way up, like notches on a reel
+  if(holding && ((before < 1/3 && p >= 1/3) || (before < 2/3 && p >= 2/3))) haptic("select");
+  if(p >= 1){ rise(); return; }
+  if(holding || p > 0) holdRaf = requestAnimationFrame(holdFrame);
+  else holdRaf = 0;
+}
+function press(e){
+  if(surfacing) return;
+  if(e){ e.preventDefault(); try { holdBtn.setPointerCapture(e.pointerId); } catch(_){} }
+  holding = true; surf.classList.add("holding"); holdBtn.classList.add("holding");
+  if(!holdRaf){ holdLast = performance.now(); holdRaf = requestAnimationFrame(holdFrame); }
+}
+function letGo(){
+  if(!holding) return;
+  holding = false; surf.classList.remove("holding"); holdBtn.classList.remove("holding");
+  if(!holdRaf && holdP > 0){ holdLast = performance.now(); holdRaf = requestAnimationFrame(holdFrame); }
+}
+function rise(){
+  surfacing = true; holding = false; holdRaf = 0;
+  holdBtn.classList.remove("holding");
+  haptic("medium");
+  // restart the question's entrance so it comes up as the water lifts away
+  const q = $("question"); q.classList.remove("enter"); void q.offsetWidth; q.classList.add("enter");
+  surf.classList.add("out");
+  setTimeout(() => { surf.hidden = true; surf.classList.remove("out", "holding"); setHold(0); $("next").focus(); }, 500);
+}
+holdBtn.addEventListener("pointerdown", press);
+holdBtn.addEventListener("pointerup", letGo);
+holdBtn.addEventListener("pointercancel", letGo);
+holdBtn.addEventListener("lostpointercapture", letGo);
+holdBtn.addEventListener("contextmenu", e => e.preventDefault());   // long-press menus on Android
+// Keyboards and screen readers can't "hold": a click that didn't come from a pointer surfaces at once.
+holdBtn.addEventListener("click", e => { if(e.detail === 0 && !surfacing) rise(); });
 $("pass").onclick = () => newQuestion();
 $("deeper").onclick = () => { haptic("medium"); setLevel(state.level + 1); };
 

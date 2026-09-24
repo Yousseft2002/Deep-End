@@ -11,8 +11,8 @@ Researched September 2026. Store rules change, so check the linked sources befor
 - [ ] Web version live on GitHub Pages (see README). The stores need these public URLs:
   - Privacy policy: `https://<you>.github.io/deep-end/privacy.html`
   - Support: `https://<you>.github.io/deep-end/support.html`
-- [ ] Recommended: self-host the two fonts (Bricolage Grotesque, Young Serif). The store app then looks
-      right on first launch with no signal, and the Google Fonts note can come out of the privacy policy.
+- [x] Fonts are built in (`docs/fonts/`, SIL Open Font License, with license files alongside). The app makes
+      no network requests while you play.
 
 ## 1. Accounts and costs
 
