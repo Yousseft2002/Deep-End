@@ -1,0 +1,94 @@
+# Cloud builds for the App Store and Google Play: codemagic.io runs these on its Macs,
+# so no Mac is needed. Connect this GitHub repo in Codemagic, set up the signing
+# described in STORE-CHECKLIST.md, then start a workflow by hand.
+#
+# NOT YET RUN: this follows Codemagic's documented Capacitor setup but has never built.
+# Expect to fix small things on the first run and read the build log.
+#
+# The native ios/ and android/ projects are generated fresh on each build from
+# capacitor.config.json, so the web app in docs/ stays the only source of truth.
+
+definitions:
+  scripts:
+    - &install
+      name: Install and generate native projects
+      script: |
+        npm install
+        [ -d ios ] || npx cap add ios
+        [ -d android ] || npx cap add android
+        npx capacitor-assets generate --iconBackgroundColor "#123F48" --iconBackgroundColorDark "#123F48" \
+          --splashBackgroundColor "#123F48" --splashBackgroundColorDark "#123F48"
+        npx cap sync
+        # Marketing version comes from docs/version.js, the same number players see in the menu.
+        echo "APP_VERSION=$(grep -o 'DEEPEND_VERSION = "[^"]*"' docs/version.js | cut -d'"' -f2)" >> $CM_ENV
+
+workflows:
+  ios-testflight:
+    name: iOS → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Deep End API key   # the name you give the key in Codemagic → Team → Integrations
+    environment:
+      node: 22
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: io.github.dosyoussef.deepend
+    scripts:
+      - *install
+      - name: Portrait only, no encryption export questions
+        script: |
+          PLIST=ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" $PLIST || true
+          /usr/libexec/PlistBuddy -c "Delete :UISupportedInterfaceOrientations" $PLIST || true
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations array" $PLIST
+          /usr/libexec/PlistBuddy -c "Add :UISupportedInterfaceOrientations:0 string UIInterfaceOrientationPortrait" $PLIST
+      - name: Code signing
+        script: xcode-project use-profiles
+      - name: Version and build number
+        script: |
+          cd ios/App
+          agvtool new-marketing-version "$APP_VERSION"
+          agvtool new-version -all "$BUILD_NUMBER"
+      - name: Build ipa
+        script: xcode-project build-ipa --project "ios/App/App.xcodeproj" --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
+
+  android-play:
+    name: Android → Play internal testing
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      node: 22
+      java: 21
+      android_signing:
+        - deep_end_upload_key          # the keystore reference name you choose in Codemagic
+      groups:
+        - google_play                  # holds GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+    scripts:
+      - *install
+      - name: Version and build number
+        script: |
+          sed -i "s/versionCode [0-9]*/versionCode $BUILD_NUMBER/; s/versionName \"[^\"]*\"/versionName \"$APP_VERSION\"/" android/app/build.gradle
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+      - name: Build and sign app bundle
+        script: |
+          cd android && ./gradlew bundleRelease && cd ..
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 -keystore "$CM_KEYSTORE_PATH" \
+            -storepass "$CM_KEYSTORE_PASSWORD" -keypass "$CM_KEY_PASSWORD" "$AAB" "$CM_KEY_ALIAS"
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true   # the very first upload to a new app must be a draft

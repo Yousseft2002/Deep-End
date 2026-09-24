@@ -1,0 +1,13 @@
+{
+  "appId": "io.github.dosyoussef.deepend",
+  "appName": "Deep End",
+  "webDir": "docs",
+  "backgroundColor": "#123F48",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#123F48"
+  },
+  "android": {
+    "backgroundColor": "#123F48"
+  }
+}

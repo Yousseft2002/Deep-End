@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Deep End</title>
+<meta name="description" content="Questions for two. Pick who you're with, then slide to choose how deep you go.">
+<meta name="theme-color" content="#123F48">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deep End">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Young+Serif&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="version.js"></script>
+<script src="questions.js"></script>
+<script src="app.js" defer></script>
+</head>
+<body data-level="1">
+
+<!-- Inline icon sprite: one place for every glyph, colored by currentColor -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pass" viewBox="0 0 24 24"><path d="M5 12h12M13 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 5h14v10H10l-5 4z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-ring" viewBox="0 0 48 48"><circle cx="24" cy="24" r="17" fill="none" stroke="#fff" stroke-width="10"/><circle cx="24" cy="24" r="17" fill="none" stroke="#FF5A4E" stroke-width="10" stroke-dasharray="13.35 13.35" transform="rotate(-22 24 24)"/></symbol>
+</svg>
+
+<!-- ============ HOME ============ -->
+<main id="home" class="screen home">
+  <header class="home-head">
+    <h1 class="title">Deep<br>End</h1>
+    <button class="icon-btn" id="menuHome" aria-label="Menu: install, feedback, settings"><svg><use href="#i-menu"/></svg></button>
+  </header>
+  <p class="lede">Questions for two. Pick who you're with, then slide to choose how deep you go.</p>
+
+  <button class="resume" id="resume" hidden>
+    <span class="resume-k">Keep going</span>
+    <span class="resume-v" id="resumeText"></span>
+  </button>
+
+  <section aria-labelledby="pickLabel">
+    <h2 class="pick-q" id="pickLabel">Who are you with?</h2>
+    <div id="groups"></div>
+    <form class="custom" id="customForm">
+      <input id="customInput" type="text" maxlength="30" placeholder="Someone else…" aria-label="Someone else" autocomplete="off">
+      <button class="btn-buoy" type="submit">Start</button>
+    </form>
+  </section>
+
+  <section class="names" aria-labelledby="namesLabel">
+    <h2 class="small-h" id="namesLabel">Your names <span>(optional)</span></h2>
+    <div class="name-row">
+      <label>First to ask<input id="nameA" type="text" maxlength="16" placeholder="You" autocomplete="off"></label>
+      <label>Second<input id="nameB" type="text" maxlength="16" placeholder="Them" autocomplete="off"></label>
+    </div>
+  </section>
+
+  <p class="foot"><button class="link" id="versionLink"></button></p>
+</main>
+
+<!-- ============ PLAY ============ -->
+<main id="play" class="screen" hidden>
+  <div class="topbar">
+    <button class="icon-btn" id="goHome" aria-label="Back to start"><svg><use href="#i-back"/></svg></button>
+    <button class="pill" id="changeWho">With your partner</button>
+    <button class="pill" id="openSaved">Saved 0</button>
+  </div>
+
+  <div class="stage">
+    <div class="gauge" id="gauge" role="slider" tabindex="0" aria-label="Depth"
+         aria-valuemin="1" aria-valuemax="5" aria-valuenow="1" aria-valuetext="Shallows">
+      <span class="end top" aria-hidden="true">Light</span>
+      <div class="rail" id="rail">
+        <div class="track"></div>
+        <div class="knob" id="knob"></div>
+      </div>
+      <span class="end bot" aria-hidden="true">Deep</span>
+    </div>
+
+    <section class="card" aria-live="polite">
+      <p class="meta" id="turn">You ask them</p>
+      <p class="level-name"><span id="levelName">Shallows</span> <span class="level-n" id="levelN">1 of 5</span></p>
+      <h2 class="question" id="question"></h2>
+      <p class="left" id="left"></p>
+      <button class="btn-buoy reset" id="reset" hidden>Start over at this depth</button>
+    </section>
+  </div>
+
+  <div class="actions">
+    <button class="ghost" id="pass"><svg><use href="#i-pass"/></svg>Skip</button>
+    <button class="ghost" id="deeper"><svg><use href="#i-down"/></svg><span>Deeper</span></button>
+    <button class="ghost" id="save" aria-pressed="false"><svg><use href="#i-save"/></svg><span>Save</span></button>
+    <button class="ghost" id="noteBtn"><svg><use href="#i-note"/></svg>Note</button>
+  </div>
+  <button class="btn-buoy next" id="next">Next question</button>
+</main>
+
+<!-- ============ PASS THE PHONE ============ -->
+<div class="pass-screen" id="passScreen" hidden>
+  <button class="pass-inner" id="passReveal">
+    <svg class="pass-ring" aria-hidden="true"><use href="#i-ring"/></svg>
+    <span class="pass-h" id="passTitle">Pass the phone</span>
+    <span class="pass-sub">Tap when they're holding it</span>
+  </button>
+</div>
+
+<!-- ============ SHEETS ============ -->
+<div class="sheet-wrap" id="savedSheet" hidden>
+  <div class="scrim" data-close></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="savedTitle">
+    <div class="sheet-head"><h2 id="savedTitle">Saved questions</h2><button class="x" data-close>Close</button></div>
+    <ul class="list" id="savedList"></ul>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="noteSheet" hidden>
+  <div class="scrim" data-close></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="noteTitle">
+    <div class="sheet-head"><h2 id="noteTitle">Note on this question</h2><button class="x" data-close>Cancel</button></div>
+    <p class="note-q" id="noteQ"></p>
+    <div class="chips" id="noteReasons" role="group" aria-label="What's the note about?"></div>
+    <label class="field">Anything else? <span>(optional)</span>
+      <textarea id="noteText" rows="3" maxlength="400" placeholder="e.g. felt too heavy for a first date"></textarea>
+    </label>
+    <button class="btn-buoy wide" id="noteSubmit">Save note</button>
+    <p class="hint">Notes stay on this phone until you send them from the menu.</p>
+  </div>
+</div>
+
+<div class="sheet-wrap" id="menuSheet" hidden>
+  <div class="scrim" data-close></div>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+    <div class="sheet-head"><h2 id="menuTitle">Deep End</h2><button class="x" data-close>Close</button></div>
+    <div class="menu-body">
+      <section class="block web-only">
+        <h3>Get the app</h3>
+        <p id="installText"></p>
+        <button class="btn-buoy wide" id="installBtn" hidden>Install Deep End</button>
+      </section>
+
+      <section class="block">
+        <h3>Playtest feedback</h3>
+        <p id="fbCount"></p>
+        <label class="field">General thoughts
+          <textarea id="fbGeneral" rows="3" maxlength="1000" placeholder="What worked, what felt off, what you'd add"></textarea>
+        </label>
+        <div class="row">
+          <button class="btn-buoy" id="fbSend">Send feedback</button>
+          <button class="ghost small" id="fbClear">Clear</button>
+        </div>
+      </section>
+
+      <section class="block">
+        <h3>Settings</h3>
+        <label class="toggle"><span>Pass-the-phone screen between turns</span><input type="checkbox" id="optPass"></label>
+        <button class="ghost small" id="resetSeen">Forget which questions we've seen</button>
+      </section>
+
+      <section class="block">
+        <h3>What's new</h3>
+        <div id="changes"></div>
+      </section>
+
+      <section class="block">
+        <h3>About</h3>
+        <p>Nothing you type or save in Deep End leaves your phone unless you choose to share it.</p>
+        <div class="row">
+          <a class="ghost small" href="privacy.html">Privacy policy</a>
+          <a class="ghost small" href="support.html">Help &amp; contact</a>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden>
+  <span id="toastText"></span>
+  <button class="toast-btn" id="toastBtn" hidden></button>
+</div>
+
+</body>
+</html>

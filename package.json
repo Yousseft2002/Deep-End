@@ -1,0 +1,23 @@
+{
+  "name": "deep-end",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Questions for two. Pick who you're with, then slide to choose how deep you go.",
+  "scripts": {
+    "serve": "python -m http.server 8123 -d docs",
+    "release": "python tools/release.py",
+    "assets": "capacitor-assets generate --iconBackgroundColor \"#123F48\" --iconBackgroundColorDark \"#123F48\" --splashBackgroundColor \"#123F48\" --splashBackgroundColorDark \"#123F48\"",
+    "sync": "cap sync"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/haptics": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/share": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0"
+  }
+}
