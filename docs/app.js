@@ -38,7 +38,9 @@ const K = { saved:"deepend-saved", seen:"deepend-seen-v1", notes:"deepend-notes"
 let saved = store.get(K.saved, []);
 let seen  = store.get(K.seen, {});
 let notes = store.get(K.notes, []);
-let prefs = Object.assign({ passScreen:true, nameA:"", nameB:"", general:"" }, store.get(K.prefs, {}));
+// Question transitions start off for anyone whose phone asks for reduced motion.
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let prefs = Object.assign({ passScreen:true, transitions:!REDUCED, nameA:"", nameB:"", general:"" }, store.get(K.prefs, {}));
 const savePrefs = () => store.set(K.prefs, prefs);
 
 const state = { label:"", phrase:"", cat:"friend", level:1, current:null, turn:0 };
@@ -157,29 +159,48 @@ function start(label, cat, phrase, level){
 }
 function remember(){ store.set(K.last, { label:state.label, cat:state.cat, phrase:state.phrase, level:state.level }); }
 
+// With transitions on, the old question drifts up and away and the new one rises from below
+// (the same upward pull as the bubbles). Off, it just swaps. Game state always updates at once
+// so a quick Save or Skip during the animation acts on the new question.
+let swapTimer = 0;
 function newQuestion(){
   const pick = draw();
+  state.current = pick ? { q: pick.q, id: pick.id, level: state.level, who: state.phrase, cat: state.cat } : null;
+  syncSave(); remember();
+  const card = document.querySelector(".card");
+  clearTimeout(swapTimer);
+  if(!prefs.transitions || !$("question").textContent){
+    card.classList.remove("leaving");
+    paintQuestion(pick, false);
+    return;
+  }
+  card.classList.add("leaving");
+  swapTimer = setTimeout(() => { card.classList.remove("leaving"); paintQuestion(pick, true); }, 190);
+}
+function replayEnter(){
   const el = $("question");
   el.classList.remove("enter"); void el.offsetWidth;
+  if(prefs.transitions) el.classList.add("enter");
+}
+function paintQuestion(pick, animate){
+  const el = $("question");
+  el.classList.remove("enter");
   $("levelName").textContent = LEVELS[state.level-1];
   $("levelN").textContent = state.level + " of 5";
   const exhausted = !pick;
   ["next","pass","save","noteBtn"].forEach(id => $(id).disabled = exhausted);
   $("reset").hidden = !exhausted;
   if(exhausted){
-    state.current = null;
     el.textContent = "You've asked every " + LEVELS[state.level-1].toLowerCase() + " question with " + state.phrase + ".";
     $("turn").textContent = "Nothing new here";
     $("left").textContent = "Slide to another depth, or start this one over.";
   } else {
-    state.current = { q: pick.q, id: pick.id, level: state.level, who: state.phrase, cat: state.cat };
     el.textContent = pick.q;
     $("turn").textContent = turnText();
     const n = pool(state.level).length;
     $("left").textContent = n === 0 ? "Last new one at this depth" : n + " new left at this depth";
   }
-  el.classList.add("enter");
-  syncSave(); remember();
+  if(animate){ void el.offsetWidth; el.classList.add("enter"); }
 }
 
 // ---------- depth ----------
@@ -287,7 +308,8 @@ function rise(){
   holdBtn.classList.remove("holding");
   haptic("medium");
   // restart the question's entrance so it comes up as the water lifts away
-  const q = $("question"); q.classList.remove("enter"); void q.offsetWidth; q.classList.add("enter");
+  clearTimeout(swapTimer); document.querySelector(".card").classList.remove("leaving");
+  paintQuestion(state.current, false); replayEnter();
   surf.classList.add("out");
   setTimeout(() => { surf.hidden = true; surf.classList.remove("out", "holding"); setHold(0); $("next").focus(); }, 500);
 }
@@ -405,6 +427,8 @@ $("fbClear").onclick = () => {
 // ---------- menu ----------
 $("optPass").checked = prefs.passScreen;
 $("optPass").onchange = () => { prefs.passScreen = $("optPass").checked; savePrefs(); };
+$("optTransitions").checked = prefs.transitions;
+$("optTransitions").onchange = () => { prefs.transitions = $("optTransitions").checked; savePrefs(); };
 $("resetSeen").onclick = () => {
   if(!confirm("Every question becomes new again, for everyone you've played with.")) return;
   seen = {}; store.set(K.seen, seen); toast("Question history cleared");

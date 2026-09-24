@@ -150,8 +150,12 @@ svg{width:22px;height:22px;flex:none}
   font-family:var(--serif);font-weight:400;font-size:clamp(1.6rem,6.8vw,2.35rem);
   line-height:1.22;margin:0;max-width:22ch;
 }
-.question.enter{animation:rise .45s ease both}
-@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+/* Question transitions (a setting): the old question drifts up and away, the new one rises from below */
+.card .question,.card .meta,.card .left{transition:opacity .19s ease-in,transform .19s ease-in}
+.card.leaving .question{opacity:0;transform:translateY(-16px)}
+.card.leaving .meta,.card.leaving .left{opacity:0}
+.question.enter{animation:rise .5s cubic-bezier(.2,.8,.3,1) both}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 .left{margin:18px 0 0;font-size:.9rem;opacity:.65}
 .reset{align-self:flex-start;margin-top:18px}
 
