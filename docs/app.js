@@ -3,8 +3,8 @@
 
 const VERSION = self.DEEPEND_VERSION || "dev";
 const CHANGES = self.DEEPEND_CHANGES || [];
-const { LEVELS, GROUPS, Q } = self.DEEPEND_BANK;
-const WATER = ["#123F48","#10334F","#0D2748","#0A1B3A","#050B1F"];
+const { LEVELS, GROUPS, Q, FOLLOW = [], MOMENTS = {} } = self.DEEPEND_BANK;
+const WATER = ["#082229","#08192B","#071226","#050B1B","#03050E"];
 const NOTE_REASONS = ["Great question","Awkward","Confusing","Wrong depth","Too similar to another"];
 const $ = id => document.getElementById(id);
 
@@ -40,7 +40,7 @@ let seen  = store.get(K.seen, {});
 let notes = store.get(K.notes, []);
 // Question transitions start off for anyone whose phone asks for reduced motion.
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let prefs = Object.assign({ passScreen:true, transitions:!REDUCED, nameA:"", nameB:"", general:"" }, store.get(K.prefs, {}));
+let prefs = Object.assign({ passScreen:true, transitions:!REDUCED, moments:true, nameA:"", nameB:"", general:"" }, store.get(K.prefs, {}));
 const savePrefs = () => store.set(K.prefs, prefs);
 
 const state = { label:"", phrase:"", cat:"friend", level:1, current:null, turn:0 };
@@ -118,6 +118,7 @@ $("changeWho").onclick = showHome;
 function names(){ return [prefs.nameA, prefs.nameB]; }
 function turnText(){
   const [a, b] = names();
+  if(state.current && state.current.moment) return a && b ? "A moment for " + a + " and " + b : "A moment for you both";
   if(a && b) return state.turn === 0 ? a + " asks " + b : b + " asks " + a;
   return state.turn === 0 ? "You ask them" : "They ask you";
 }
@@ -130,27 +131,78 @@ function passTitle(){
 // ---------- question store: no repeats per relationship, kept on the device ----------
 function relKey(){ return state.label.trim().toLowerCase(); }
 function qid(lvl, i){ return state.cat + "-" + lvl + "-" + i; }
+function mid(lvl, i){ return state.cat + "-m" + lvl + "-" + i; }
+// An entry is ["Question?", "Follow-up?"], or a bare string that borrows a general follow-up.
+function entry(e, lvl, i){
+  const [q, f] = Array.isArray(e) ? e : [e, ""];
+  const general = FOLLOW[lvl-1] || [];
+  return { q, f: f || general[i % general.length] || "" };
+}
 function pool(lvl){
   const s = new Set(seen[relKey()] || []);
-  return Q[state.cat][lvl-1].map((q,i) => ({ q, id: qid(lvl, i) })).filter(x => !s.has(x.id));
+  return Q[state.cat][lvl-1].map((e,i) => ({ ...entry(e, lvl, i), id: qid(lvl, i) })).filter(x => !s.has(x.id));
+}
+function momentPool(lvl){
+  const s = new Set(seen[relKey()] || []);
+  return ((MOMENTS[state.cat] || [])[lvl-1] || []).map((q,i) => ({ q, f:"", id: mid(lvl, i), moment:true }))
+    .filter(x => !s.has(x.id));
+}
+
+// ---------- choosing the next card ----------
+// Closeness grows from taking turns opening up a little more each time, from following up
+// on answers, and from breaking the pattern now and then to do something together. So
+// beyond never repeating, the pick steers away from echoes of the last few cards, leans
+// toward what this pair saves and follows up on and away from what they skip, and every
+// few turns brings up a shared moment. It all resets when you pick who you're with.
+let session;
+const momentGap = () => 5 + Math.floor(Math.random() * 3);
+function freshSession(){ session = { recent:[], taste:{}, since:0, gap:momentGap(), answered:0, skips:0 }; }
+freshSession();
+
+const STOP = new Set(("what when where which while with would could should your youre youve youd about that there " +
+  "their them they have been ever never always alway every most something someone anything thing some more than into " +
+  "from like just really doe feel think make made want tell time other each else even much very only still first last " +
+  "right then these those together favorite best people thi").split(" "));
+function words(text){
+  return new Set((text.toLowerCase().replace(/['’]/g, "").match(/[a-z]+/g) || [])
+    .map(w => w.replace(/s$/, "")).filter(w => w.length > 3 && !STOP.has(w)));
+}
+function lean(text, by){ words(text).forEach(w => { session.taste[w] = (session.taste[w] || 0) + by; }); }
+function score(x){
+  const w = words(x.q);
+  let echo = 0, taste = 0;
+  session.recent.forEach((r, age) => w.forEach(k => { if(r.has(k)) echo += 1 / (age + 1); }));
+  w.forEach(k => { taste += session.taste[k] || 0; });
+  return Math.random() - 0.45 * echo + 0.12 * Math.max(-4, Math.min(4, taste));
 }
 function draw(){
-  const p = pool(state.level);
-  if(!p.length) return null;
-  const pick = p[Math.floor(Math.random() * p.length)];
+  const qs = pool(state.level);
+  if(!qs.length) return null;
+  const ms = prefs.moments && session.answered >= 2 && session.since >= session.gap ? momentPool(state.level) : [];
+  let pick;
+  if(ms.length){
+    pick = ms[Math.floor(Math.random() * ms.length)];
+    session.since = 0; session.gap = momentGap();
+  } else {
+    let top = -Infinity;
+    qs.forEach(x => { const s = score(x); if(s > top){ top = s; pick = x; } });
+    session.since++;
+  }
+  session.recent = [words(pick.q), ...session.recent].slice(0, 3);
   (seen[relKey()] = seen[relKey()] || []).push(pick.id);
   store.set(K.seen, seen);
   return pick;
 }
 $("reset").onclick = () => {
-  const prefix = state.cat + "-" + state.level + "-";
-  seen[relKey()] = (seen[relKey()] || []).filter(id => !id.startsWith(prefix));
+  const prefixes = [state.cat + "-" + state.level + "-", state.cat + "-m" + state.level + "-"];
+  seen[relKey()] = (seen[relKey()] || []).filter(id => !prefixes.some(p => id.startsWith(p)));
   store.set(K.seen, seen);
   newQuestion();
 };
 
 function start(label, cat, phrase, level){
   Object.assign(state, { label, cat, phrase, turn:0 });
+  freshSession();
   $("changeWho").textContent = "With " + phrase;
   $("home").hidden = true; $("play").hidden = false;
   setLevel(level || 1, false);
@@ -165,7 +217,7 @@ function remember(){ store.set(K.last, { label:state.label, cat:state.cat, phras
 let swapTimer = 0;
 function newQuestion(){
   const pick = draw();
-  state.current = pick ? { q: pick.q, id: pick.id, level: state.level, who: state.phrase, cat: state.cat } : null;
+  state.current = pick ? { q: pick.q, f: pick.f, moment: !!pick.moment, id: pick.id, level: state.level, who: state.phrase, cat: state.cat } : null;
   syncSave(); remember();
   const card = document.querySelector(".card");
   clearTimeout(swapTimer);
@@ -190,17 +242,45 @@ function paintQuestion(pick, animate){
   const exhausted = !pick;
   ["next","pass","save","noteBtn"].forEach(id => $(id).disabled = exhausted);
   $("reset").hidden = !exhausted;
+  document.querySelector(".card").classList.toggle("moment", !!(pick && pick.moment));
+  paintFollow(pick);
+  $("deeper").classList.toggle("nudge", !exhausted && readyForDeeper());
   if(exhausted){
-    el.textContent = "You've asked every " + LEVELS[state.level-1].toLowerCase() + " question with " + state.phrase + ".";
+    el.textContent = "You've asked every question at this depth with " + state.phrase + ".";
     $("turn").textContent = "Nothing new here";
     $("left").textContent = "Slide to another depth, or start this one over.";
   } else {
     el.textContent = pick.q;
     $("turn").textContent = turnText();
-    const n = pool(state.level).length;
-    $("left").textContent = n === 0 ? "Last new one at this depth" : n + " new left at this depth";
+    $("left").textContent = hint();
   }
   if(animate){ void el.offsetWidth; el.classList.add("enter"); }
+}
+// Follow-ups keep an answer going; asking one is what makes the other person feel heard.
+function paintFollow(pick){
+  $("dig").hidden = !(pick && pick.f);
+  $("dig").setAttribute("aria-expanded", "false");
+  $("followQ").hidden = true;
+  $("followText").textContent = pick ? pick.f : "";
+}
+$("dig").onclick = () => {
+  const open = $("dig").getAttribute("aria-expanded") !== "true";
+  $("dig").setAttribute("aria-expanded", open);
+  $("followQ").hidden = !open;
+  if(!open || !state.current) return;
+  haptic("select");
+  // on short phones the follow-up can land below the fold of the card
+  $("followQ").scrollIntoView({ block:"nearest", behavior: REDUCED ? "auto" : "smooth" });
+  if(!state.current.dug){ state.current.dug = true; lean(state.current.q, 0.5); }
+};
+// After a few answers at one depth, invite the pair a little deeper; if they keep skipping,
+// suggest another depth instead.
+function readyForDeeper(){ return state.level < 5 && session.answered >= 4; }
+function hint(){
+  if(session.skips >= 3) return "Not quite landing? Try another depth.";
+  if(readyForDeeper()) return "Warmed up? Try going a little deeper.";
+  const n = pool(state.level).length;
+  return n === 0 ? "Last new one at this depth" : n + " new left at this depth";
 }
 
 // ---------- depth ----------
@@ -208,6 +288,7 @@ function setLevel(lvl, fetch = true){
   lvl = Math.max(1, Math.min(5, lvl));
   const changed = lvl !== state.level;
   state.level = lvl;
+  if(changed){ session.answered = 0; session.skips = 0; }
   paintDepth(lvl);
   $("knob").style.top = ((lvl-1)/4*100) + "%";
   const g = $("gauge");
@@ -256,11 +337,14 @@ gauge.addEventListener("keydown", e => {
 });
 
 // ---------- actions ----------
+// A moment is shared, so it doesn't use up anyone's turn, and there's nothing to hide
+// from the other person, so it skips the hand-off.
 $("next").onclick = () => {
   haptic();
-  state.turn = 1 - state.turn;
+  if(state.current && !state.current.moment){ state.turn = 1 - state.turn; session.answered++; }
+  session.skips = 0;
   newQuestion();
-  if(prefs.passScreen && state.current) dive();
+  if(prefs.passScreen && state.current && !state.current.moment) dive();
 };
 
 // ---------- hand-off: hold the ring to bring the question up ----------
@@ -320,7 +404,10 @@ holdBtn.addEventListener("lostpointercapture", letGo);
 holdBtn.addEventListener("contextmenu", e => e.preventDefault());   // long-press menus on Android
 // Keyboards and screen readers can't "hold": a click that didn't come from a pointer surfaces at once.
 holdBtn.addEventListener("click", e => { if(e.detail === 0 && !surfacing) rise(); });
-$("pass").onclick = () => newQuestion();
+$("pass").onclick = () => {
+  if(state.current && !state.current.moment){ lean(state.current.q, -1); session.skips++; }
+  newQuestion();
+};
 $("deeper").onclick = () => { haptic("medium"); setLevel(state.level + 1); };
 
 function isSaved(){ return state.current && saved.some(s => s.q === state.current.q); }
@@ -332,8 +419,12 @@ function syncSave(){
 function updateSavedCount(){ $("openSaved").textContent = "Saved " + saved.length; }
 $("save").onclick = () => {
   if(!state.current) return;
-  if(isSaved()) saved = saved.filter(s => s.q !== state.current.q);
-  else { saved.unshift({ q:state.current.q, level:state.current.level, who:state.current.who }); haptic(); }
+  const c = state.current;
+  if(isSaved()){ saved = saved.filter(s => s.q !== c.q); lean(c.q, -1); }
+  else {
+    saved.unshift(Object.assign({ q:c.q, level:c.level, who:c.who }, c.moment && { moment:true }));
+    lean(c.q, 1); haptic();
+  }
   store.set(K.saved, saved); syncSave(); updateSavedCount();
 };
 
@@ -348,7 +439,7 @@ function renderSaved(){
   saved.forEach((s, i) => {
     const li = document.createElement("li");
     const p = document.createElement("p"); p.textContent = s.q;
-    const sm = document.createElement("small"); sm.textContent = LEVELS[s.level-1] + ", with " + s.who;
+    const sm = document.createElement("small"); sm.textContent = (s.moment ? "A moment · " : "") + LEVELS[s.level-1] + ", with " + s.who;
     p.appendChild(sm);
     const sh = document.createElement("button");
     sh.className = "x"; sh.textContent = "Share"; sh.setAttribute("aria-label", "Share: " + s.q);
@@ -429,6 +520,8 @@ $("optPass").checked = prefs.passScreen;
 $("optPass").onchange = () => { prefs.passScreen = $("optPass").checked; savePrefs(); };
 $("optTransitions").checked = prefs.transitions;
 $("optTransitions").onchange = () => { prefs.transitions = $("optTransitions").checked; savePrefs(); };
+$("optMoments").checked = prefs.moments;
+$("optMoments").onchange = () => { prefs.moments = $("optMoments").checked; savePrefs(); };
 $("resetSeen").onclick = () => {
   if(!confirm("Every question becomes new again, for everyone you've played with.")) return;
   seen = {}; store.set(K.seen, seen); toast("Question history cleared");

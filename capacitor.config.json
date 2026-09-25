@@ -2,12 +2,12 @@
   "appId": "io.github.yousseft2002.deepend",
   "appName": "Deep End",
   "webDir": "docs",
-  "backgroundColor": "#123F48",
+  "backgroundColor": "#082229",
   "ios": {
     "contentInset": "never",
-    "backgroundColor": "#123F48"
+    "backgroundColor": "#082229"
   },
   "android": {
-    "backgroundColor": "#123F48"
+    "backgroundColor": "#082229"
   }
 }

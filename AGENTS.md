@@ -11,9 +11,9 @@ The owner is play-testing it with friends and will submit it to the stores. Keep
 
 | Path | Role |
 |---|---|
-| `docs/questions.js` | **The content.** Relationship groups and five depth lists of questions per category. |
+| `docs/questions.js` | **The content.** Relationship groups; per category, five depth lists of `[question, follow-up]` pairs, plus `MOMENTS` (short things to do together) and general `FOLLOW`-ups. |
 | `docs/index.html` | All markup: home, play screen, underwater hand-off overlay, sheets (saved, note, menu), toast. |
-| `docs/styles.css` | All styles. Color tokens on `:root`; `body[data-level]` sets `--water` per depth. |
+| `docs/styles.css` | All styles. Color tokens on `:root`; `body[data-level]` sets `--water` and `--glow` per depth. |
 | `docs/app.js` | All behaviour, one IIFE, vanilla JS. |
 | `docs/version.js` | `DEEPEND_VERSION` + `DEEPEND_CHANGES`. Read by the page AND the service worker. |
 | `docs/sw.js` | Offline cache per release + update flow. |
@@ -36,8 +36,9 @@ The owner is play-testing it with friends and will submit it to the stores. Keep
 4. **Every new file the app needs goes into the `SHELL` list in `docs/sw.js`**, or installed copies break offline.
 5. **Shipping a change = `python tools/release.py X.Y.Z "note players will read"`**, then commit and push.
    Without a version bump, installed phones never see the update. Notes are shown to players verbatim: plain words.
-6. **Questions are append-only within a list.** A question's id is `category-level-index`, and "already seen"
-   history stores those ids. Add at the end; don't insert, reorder or delete in the middle.
+6. **Questions are append-only within a list.** A question's id is `category-level-index` (moments:
+   `category-mlevel-index`), and "already seen" history stores those ids. Add at the end; don't insert,
+   reorder or delete in the middle. Rewording in place is fine if the question keeps its meaning.
 7. **Guard all storage.** Use the `store.get/set` helpers (try/catch). Private browsing must not break the game.
 8. **Store builds:** `NATIVE` in `app.js` is true inside Capacitor. There, use `haptic()` and `shareText()`
    (native Haptics/Share plugins with web fallbacks), and never register the service worker.
@@ -46,13 +47,19 @@ The owner is play-testing it with friends and will submit it to the stores. Keep
    Anything hold- or drag-only needs a keyboard/screen-reader path (see the hand-off's `e.detail === 0` click).
    Respect `prefers-reduced-motion`.
 10. **Settings live in `prefs`** (saved to localStorage) with a toggle in the menu's Settings block.
-    Current ones: `transitions` (question transitions), `passScreen` (underwater hand-off), `nameA`/`nameB`.
+    Current ones: `transitions` (question transitions), `passScreen` (underwater hand-off),
+    `moments` (shared moments every few turns), `nameA`/`nameB`.
 
 ## Style
 
 - Match the surrounding code: small functions, `$()` for `getElementById`, 2-space indent, comments that say *why*.
-- Visual language: always-dark water palette, yellow `--buoy` for primary actions, aqua `--aqua` accents,
-  Bricolage Grotesque for UI, Young Serif for the questions. Water, depth and surfacing are the metaphors.
+- Visual language: a night swim. Always-dark water that darkens with depth, lit by `--glow`, which warms from
+  aqua (Shallows) to ember rose (The deep end) and colours accents, kickers and icons. Frosted-glass controls
+  (`--glass`, `--line`), yellow `--buoy` for primary actions, Bricolage Grotesque for UI, Young Serif for the
+  questions and headings. Water, depth and surfacing are the metaphors.
+- Picking the next card (`draw()` in `app.js`): never repeats per relationship; scores what's left to avoid
+  echoing the last few cards and to lean toward what the pair saves or follows up on and away from what they
+  skip; a moment every 5 to 7 cards; a "go deeper" nudge after 4 answers at one depth. All per sitting.
 - Copy is warm, short and plain. No emoji.
 
 ## Run and check

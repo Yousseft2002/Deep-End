@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Deep End</title>
 <meta name="description" content="Questions for two. Pick who you're with, then slide to choose how deep you go.">
-<meta name="theme-color" content="#123F48">
+<meta name="theme-color" content="#082229">
 <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -31,19 +31,33 @@
   <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-save" viewBox="0 0 24 24"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></symbol>
   <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 5h14v10H10l-5 4z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></symbol>
+  <symbol id="i-follow" viewBox="0 0 24 24"><path d="M6 4v7a4 4 0 0 0 4 4h9M15 11l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-go" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>
+
+<!-- Specks of light drifting up through the water. Decoration only. -->
+<div class="motes" aria-hidden="true">
+  <i style="--x:8%;--s:3px;--t:26s;--d:-4s"></i><i style="--x:21%;--s:2px;--t:32s;--d:-19s"></i>
+  <i style="--x:37%;--s:4px;--t:29s;--d:-11s"></i><i style="--x:52%;--s:2px;--t:35s;--d:-27s"></i>
+  <i style="--x:66%;--s:3px;--t:24s;--d:-7s"></i><i style="--x:79%;--s:2px;--t:31s;--d:-15s"></i>
+  <i style="--x:91%;--s:3px;--t:28s;--d:-22s"></i><i style="--x:45%;--s:2px;--t:38s;--d:-2s"></i>
+</div>
 
 <!-- ============ HOME ============ -->
 <main id="home" class="screen home">
   <header class="home-head">
-    <h1 class="title">Deep<br>End</h1>
+    <p class="kicker">Questions for two</p>
     <button class="icon-btn" id="menuHome" aria-label="Menu: install, feedback, settings"><svg><use href="#i-menu"/></svg></button>
   </header>
-  <p class="lede">Questions for two. Pick who you're with, then slide to choose how deep you go.</p>
+  <h1 class="title">Deep<br>End</h1>
+  <p class="lede">Pick who you're with, then slide to choose how deep you go.</p>
 
   <button class="resume" id="resume" hidden>
-    <span class="resume-k">Keep going</span>
-    <span class="resume-v" id="resumeText"></span>
+    <span class="resume-txt">
+      <span class="resume-k">Keep going</span>
+      <span class="resume-v" id="resumeText"></span>
+    </span>
+    <svg aria-hidden="true"><use href="#i-go"/></svg>
   </button>
 
   <section aria-labelledby="pickLabel">
@@ -89,6 +103,10 @@
       <p class="meta" id="turn">You ask them</p>
       <p class="level-name"><span id="levelName">Shallows</span> <span class="level-n" id="levelN">1 of 5</span></p>
       <h2 class="question" id="question"></h2>
+      <div class="follow">
+        <button class="dig" id="dig" type="button" aria-expanded="false" aria-controls="followQ"><svg><use href="#i-follow"/></svg>Follow-up</button>
+        <p class="follow-q" id="followQ" hidden><span class="follow-k">Then ask</span><span id="followText"></span></p>
+      </div>
       <p class="left" id="left"></p>
       <button class="btn-buoy reset" id="reset" hidden>Start over at this depth</button>
     </section>
@@ -182,6 +200,7 @@
         <h3>Settings</h3>
         <label class="toggle"><span>Question transitions</span><input type="checkbox" id="optTransitions"></label>
         <label class="toggle"><span>Underwater hand-off between turns</span><input type="checkbox" id="optPass"></label>
+        <label class="toggle"><span>Shared moments every few turns</span><input type="checkbox" id="optMoments"></label>
         <button class="ghost small" id="resetSeen">Forget which questions we've seen</button>
       </section>
 

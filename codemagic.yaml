@@ -17,7 +17,7 @@ definitions:
         [ -d ios ] || npx cap add ios
         [ -d android ] || npx cap add android
         npx capacitor-assets generate --iconBackgroundColor "#123F48" --iconBackgroundColorDark "#123F48" \
-          --splashBackgroundColor "#123F48" --splashBackgroundColorDark "#123F48"
+          --splashBackgroundColor "#082229" --splashBackgroundColorDark "#082229"
         npx cap sync
         # Marketing version comes from docs/version.js, the same number players see in the menu.
         echo "APP_VERSION=$(grep -o 'DEEPEND_VERSION = "[^"]*"' docs/version.js | cut -d'"' -f2)" >> $CM_ENV
